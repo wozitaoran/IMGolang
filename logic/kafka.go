@@ -62,6 +62,7 @@ func mpushKafka(serverId int32, keys []string, msg []byte) (err error) {
 	if vBytes, err = json.Marshal(v); err != nil {
 		return
 	}
+	log.Debug("vBytes===========%s", string(vBytes))
 	producer.Input() <- &sarama.ProducerMessage{Topic: KafkaPushsTopic, Value: sarama.ByteEncoder(vBytes)}
 	return
 }

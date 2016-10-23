@@ -107,6 +107,10 @@ $ nohup $GOPATH/bin/comet -c $GOPATH/bin/comet.conf 2>&1 > /data/logs/goim/panic
 $ nohup $GOPATH/bin/job -c $GOPATH/bin/job.conf 2>&1 > /data/logs/goim/panic-job.log &
 ```
 如果启动失败，默认配置可通过查看panic-xxx.log日志文件来排查各个模块问题.
+启动job需要手动先添加kafka topic，如下：
+```sh
+bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic KafkaPushsTopic
+```
 
 ### 六、测试
 

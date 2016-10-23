@@ -98,13 +98,19 @@ func Push(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	body = string(bodyBytes)
+	log.Debug("body=======%s", body)
 	if userId, err = strconv.ParseInt(uidStr, 10, 64); err != nil {
 		log.Error("strconv.Atoi(\"%s\") error(%v)", uidStr, err)
 		res["ret"] = InternalErr
 		return
 	}
 	subKeys = genSubKey(userId)
+	log.Debug("subKeys = genSubKey(userId)=======%v", subKeys)
+	//TODO xurui subKeys   如果离线消息要发是不是可以直接push到默认的serverid
+	//TODO 为什么一个user的serverid 有多个？comet能连接多个？
 	for serverId, keys = range subKeys {
+		log.Debug("serverId=======%d", serverId)
+		log.Debug("keys=======%v", keys)
 		if err = mpushKafka(serverId, keys, bodyBytes); err != nil {
 			res["ret"] = InternalErr
 			return
@@ -158,7 +164,10 @@ func Pushs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	subKeys = genSubKeys(userIds)
+	log.Debug("subKeys = genSubKey(userId)=======%v", subKeys)
 	for serverId, keys = range subKeys {
+		log.Debug("serverId=======%d", serverId)
+		log.Debug("keys=======%v", keys)
 		if err = mpushKafka(serverId, keys, bodyBytes); err != nil {
 			res["ret"] = InternalErr
 			return
