@@ -65,8 +65,27 @@ func (r *RPC) Connect(arg *proto.ConnArg, reply *proto.ConnReply) (err error) {
 	uid, reply.RoomId = r.auther.Auth(arg.Token)
 	if seq, err = connect(uid, arg.Server, reply.RoomId); err == nil {
 		reply.Key = encode(uid, seq)
+		go checkOfflineMsg(uid, reply.Key, arg.Server) //add by xurui
 	}
 	return
+}
+
+func checkOfflineMsg(uid int64, key string, serverId int32) {
+	//get from db
+	log.Debug("func checkOfflineMsg")
+	msgs, err := getSingleOfflineMsg(uid)
+	if err != nil {
+		log.Error("checkOfflineMsg error:%v", err)
+		return
+	}
+	keyArr := []string{key}
+
+	_ = msgs
+	_ = keyArr
+	//	for _, msg := range msgs {
+	//		mpushKafka(serverId, keyArr, msg)
+	//	}
+
 }
 
 // Disconnect notice router offline

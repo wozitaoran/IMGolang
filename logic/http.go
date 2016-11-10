@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	inet "goim/libs/net"
+	"goim/libs/proto"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -23,6 +24,8 @@ func InitHTTP() (err error) {
 		httpServeMux.HandleFunc("/1/push/room", PushRoom)
 		httpServeMux.HandleFunc("/1/server/del", DelServer)
 		httpServeMux.HandleFunc("/1/count", Count)
+		//发送单聊、群聊消息
+		httpServeMux.HandleFunc("/send", SendMsg)
 		log.Info("start http listen:\"%s\"", Conf.HTTPAddrs[i])
 		if network, addr, err = inet.ParseNetwork(Conf.HTTPAddrs[i]); err != nil {
 			log.Error("inet.ParseNetwork() error(%v)", err)
@@ -40,6 +43,7 @@ func httpListen(mux *http.ServeMux, network, addr string) {
 	if err != nil {
 		log.Error("net.Listen(\"%s\", \"%s\") error(%v)", network, addr, err)
 		panic(err)
+
 	}
 	if err := httpServer.Serve(l); err != nil {
 		log.Error("server.Serve() error(%v)", err)
@@ -107,15 +111,32 @@ func Push(w http.ResponseWriter, r *http.Request) {
 	subKeys = genSubKey(userId)
 	log.Debug("subKeys = genSubKey(userId)=======%v", subKeys)
 	//TODO xurui subKeys   如果离线消息要发是不是可以直接push到默认的serverid
-	//TODO 为什么一个user的serverid 有多个？comet能连接多个？
-	for serverId, keys = range subKeys {
-		log.Debug("serverId=======%d", serverId)
-		log.Debug("keys=======%v", keys)
-		if err = mpushKafka(serverId, keys, bodyBytes); err != nil {
-			res["ret"] = InternalErr
-			return
+	//TODO 为什么一个user的serverid 有多个？comet能连接多个？  one user can connet many time
+	//打印map的长度  len(subKeys)
+	size := len(subKeys)
+	if size == 0 { //用户不在线,将消息存入离线消息系统  暂定mysql
+		log.Debug("offline msg")
+		serverId = 1 //test
+		//TODO 存储到mysql
+
+		//offlinekeys := []string{fmt.Sprintf("%d", userId) + "_1"}
+		//log.Debug("offlinekeys=======%v", offlinekeys)
+		//if err = mpushKafka(serverId, offlinekeys, bodyBytes); err != nil {
+		//	res["ret"] = InternalErr
+		//	return
+		//}
+	} else {
+		log.Debug("online msg")
+		for serverId, keys = range subKeys {
+			log.Debug("serverId=======%d", serverId)
+			log.Debug("keys=======%v", keys)
+			if err = mpushKafka(serverId, keys, bodyBytes); err != nil {
+				res["ret"] = InternalErr
+				return
+			}
 		}
 	}
+
 	res["ret"] = OK
 	return
 }
@@ -173,6 +194,110 @@ func Pushs(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	res["ret"] = OK
+	return
+}
+
+//{"target_type":"user","target":1,"msg_type":1,"msg":{"test":1},"from":2}
+func SendMsg(w http.ResponseWriter, r *http.Request) {
+	//TODO
+	if r.Method != "POST" {
+		http.Error(w, "Method Not Allowed", 405)
+		return
+	}
+	var (
+		body        string
+		bodyBytes   []byte
+		msgContent  []byte
+		serverId    int32
+		userIds     []int64
+		target_type string
+		targetId    int64
+		msg_type    int64
+		fromId      int64
+		err         error
+		res         = map[string]interface{}{"ret": OK}
+		subKeys     map[int32][]string
+		keys        []string
+	)
+	defer retPWrite(w, r, res, &body, time.Now())
+	if bodyBytes, err = ioutil.ReadAll(r.Body); err != nil {
+		log.Error("ioutil.ReadAll() failed (%s)", err)
+		res["ret"] = InternalErr
+		return
+	}
+	body = string(bodyBytes)
+
+	//parseSendBody
+	tmp := proto.SendMessage{}
+
+	if err = json.Unmarshal(bodyBytes, &tmp); err != nil {
+		log.Error("parseSendBody(\"%s\") error(%s)", body, err)
+		res["ret"] = InternalErr
+		return
+	}
+	target_type = tmp.Target_type
+	targetId = tmp.Target
+	msg_type = tmp.Msg_type
+	msgContent = tmp.Msg
+	fromId = tmp.From
+	//TODO proto.SendMessage  ->proto.RecvMessage
+
+	//接受的消息结构
+	//type RecvMessage struct {
+	//	Target_type string `json:"target_type"`
+	//	Msg_type    int64  `json:"msg_type"`
+	//	Msg         string `json:"msg"`
+	//	From        int64  `json:"from"`
+	//	Send_time   string `json:"send_time"`
+	//}
+	timenow := time.Now().Format("2006-01-02 15:04:05")
+
+	recvBodyMsg := proto.RecvMessage{target_type, msg_type, string(msgContent), fromId, timenow}
+	recvBodyBytes, err := json.Marshal(recvBodyMsg)
+
+	if target_type == "user" {
+		//发送到个人
+		subKeys = genSubKey(targetId)
+		log.Debug("subKeys = genSubKey(userId)=======%v", subKeys)
+
+		size := len(subKeys)
+		if size == 0 { //用户不在线,将消息存入离线消息系统  暂定mysql
+			log.Debug("offline msg")
+			addSingleOfflinemsg(fromId, targetId, string(msgContent), msg_type)
+
+		} else {
+			log.Debug("online msg")
+			for serverId, keys = range subKeys {
+				log.Debug("serverId=======%d", serverId)
+				log.Debug("keys=======%v", keys)
+				if err = mpushKafka(serverId, keys, recvBodyBytes); err != nil {
+					res["ret"] = InternalErr
+					return
+				}
+			}
+		}
+	} else if target_type == "group" {
+		//TODO 发送到群
+		//根据groupid查询userIds
+
+		//推多人
+		subKeys = genSubKeys(userIds)
+
+		log.Debug("subKeys = genSubKey(userId)=======%v", subKeys)
+		for serverId, keys = range subKeys {
+			log.Debug("serverId=======%d", serverId)
+			log.Debug("keys=======%v", keys)
+			if err = mpushKafka(serverId, keys, bodyBytes); err != nil {
+				res["ret"] = InternalErr
+				return
+			}
+		}
+
+	} else {
+		//TODO 异常处理
+	}
+
 	res["ret"] = OK
 	return
 }

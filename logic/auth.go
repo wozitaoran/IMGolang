@@ -20,6 +20,7 @@ func NewDefaultAuther() *DefaultAuther {
 }
 
 func (a *DefaultAuther) Auth(token string) (userId int64, roomId int32) {
+	//TODO mysql token check
 	var err error
 	log.Info("token=\"%s\"", token)
 	var token0, token1 string
