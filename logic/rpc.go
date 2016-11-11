@@ -80,7 +80,10 @@ func checkOfflineMsg(uid int64, key string, serverId int32) {
 	}
 	keyArr := []string{key}
 
-	_ = msgs
+	for _, recMsg := range msgs {
+		log.Info(recMsg.Msg)
+	}
+
 	_ = keyArr
 	//	for _, msg := range msgs {
 	//		mpushKafka(serverId, keyArr, msg)

@@ -18,12 +18,12 @@ func InitHTTP() (err error) {
 	var network, addr string
 	for i := 0; i < len(Conf.HTTPAddrs); i++ {
 		httpServeMux := http.NewServeMux()
-		httpServeMux.HandleFunc("/1/push", Push)
-		httpServeMux.HandleFunc("/1/pushs", Pushs)
-		httpServeMux.HandleFunc("/1/push/all", PushAll)
-		httpServeMux.HandleFunc("/1/push/room", PushRoom)
-		httpServeMux.HandleFunc("/1/server/del", DelServer)
-		httpServeMux.HandleFunc("/1/count", Count)
+		//		httpServeMux.HandleFunc("/1/push", Push)
+		//		httpServeMux.HandleFunc("/1/pushs", Pushs)
+		//		httpServeMux.HandleFunc("/1/push/all", PushAll)
+		//		httpServeMux.HandleFunc("/1/push/room", PushRoom)
+		//		httpServeMux.HandleFunc("/1/server/del", DelServer)
+		//		httpServeMux.HandleFunc("/1/count", Count)
 		//发送单聊、群聊消息
 		httpServeMux.HandleFunc("/send", SendMsg)
 		log.Info("start http listen:\"%s\"", Conf.HTTPAddrs[i])
@@ -241,17 +241,10 @@ func SendMsg(w http.ResponseWriter, r *http.Request) {
 	msg_type = tmp.Msg_type
 	msgContent = tmp.Msg
 	fromId = tmp.From
-	//TODO proto.SendMessage  ->proto.RecvMessage
 
-	//接受的消息结构
-	//type RecvMessage struct {
-	//	Target_type string `json:"target_type"`
-	//	Msg_type    int64  `json:"msg_type"`
-	//	Msg         string `json:"msg"`
-	//	From        int64  `json:"from"`
-	//	Send_time   string `json:"send_time"`
-	//}
 	timenow := time.Now().Format("2006-01-02 15:04:05")
+	//TODO 插入数据库 消息发送记录表 是否加go
+	addMsgRecord(fromId, target_type, targetId, string(msgContent), msg_type)
 
 	recvBodyMsg := proto.RecvMessage{target_type, msg_type, string(msgContent), fromId, timenow}
 	recvBodyBytes, err := json.Marshal(recvBodyMsg)
@@ -264,6 +257,7 @@ func SendMsg(w http.ResponseWriter, r *http.Request) {
 		size := len(subKeys)
 		if size == 0 { //用户不在线,将消息存入离线消息系统  暂定mysql
 			log.Debug("offline msg")
+			//TODO 是否加go
 			addSingleOfflinemsg(fromId, targetId, string(msgContent), msg_type)
 
 		} else {

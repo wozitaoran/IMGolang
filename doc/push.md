@@ -23,25 +23,6 @@ push http接口文档，用于推送接口接入
 }
 </pre>
 
-##### 发消息通用send接口
- * 请求例子
-
-```sh
-curl -d "{\"target_type\":\"user\",\"target\":1,\"msg_type\":1,\"msg\":{\"test\":1},\"from\":2}"27.0.0.1:7172/send
-target_type：user \group
-msg_type:1、文本  2、url 3、图片 4、语音 
-
-```
-
- * 返回
-
-<pre>
-{
-    "ret": 1
-}
-</pre>
-
-
 
 ##### 单人推送
  * 请求例子

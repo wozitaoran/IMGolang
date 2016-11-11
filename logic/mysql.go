@@ -11,16 +11,28 @@ import (
 
 var db *sql.DB
 
-func init() {
+func initDB() {
 	var err error
 	log.Info("mysql conn pool init")
 
 	//获取连接池 sql 包的 Close 方法只有 3个，除了 *sql.Db 是连接池对象，使用中是不会关闭的 其他的两个 Rows.Close 和 Stmt.Close 是需要关的
-	db, err = sql.Open("mysql", "root:yxkj@tcp(192.168.19.37:3307)/lexiangccb?charset=utf8")
+	db, err = sql.Open("mysql", Conf.DBAddrs)
+	log.Info("Conf.DBAddrs:\"%s\"", Conf.DBAddrs)
 	db.SetMaxIdleConns(20)
 	db.SetMaxOpenConns(20)
 
 	checkErr(err)
+}
+
+func addMsgRecord(sendId int64, target_type string, targetId int64, msgContent string, msg_type int64) {
+	//INSERT im_msg_send SET sendId=?,target_type=?,targetId=?,msg=?,msg_type=?,send_time=NOW()
+	stmt, err := db.Prepare("INSERT im_msg_send SET sendId=?,target_type=?,targetId=?,msg=?,msg_type=?,send_time=NOW()")
+	checkErr(err)
+
+	_, err = stmt.Exec(sendId, target_type, targetId, msgContent, msg_type)
+	checkErr(err)
+
+	stmt.Close()
 }
 
 //insert offline single msg  (fromId, targetId, body, msg_type)
@@ -39,7 +51,6 @@ func addSingleOfflinemsg(sendId int64, recvId int64, msgContent string, msg_type
 
 func getSingleOfflineMsg(uid int64) (msgs []proto.RecvMessage, err error) {
 
-	//SELECT sendId,msgContent,msg_type,insert_time FROM im_user WHERE recvId =
 	rows, err := db.Query("SELECT sendId,msgContent,msg_type,insert_time FROM im_s_offline_msg WHERE recvId=?", uid)
 
 	for rows.Next() {
@@ -55,7 +66,15 @@ func getSingleOfflineMsg(uid int64) (msgs []proto.RecvMessage, err error) {
 	log.Debug(msgs)
 	rows.Close()
 
-	//delete
+	//删除数据
+	stmt, err := db.Prepare("delete from im_s_offline_msg where recvId=?")
+
+	res, err := stmt.Exec(uid)
+
+	affect, err := res.RowsAffected()
+	stmt.Close()
+	log.Debug("delete from im_s_offline_msg==========")
+	log.Debug(affect)
 
 	return
 }

@@ -49,6 +49,8 @@ type Config struct {
 	RouterRPCAddrs map[string]string `-`
 	// kafka
 	KafkaAddrs []string `goconf:"kafka:addrs"`
+	//DB
+	DBAddrs string `goconf:"base:db.addrs:,"`
 }
 
 func NewConfig() *Config {
@@ -61,6 +63,7 @@ func NewConfig() *Config {
 		PprofAddrs:     []string{"localhost:6971"},
 		HTTPAddrs:      []string{"7172"},
 		RouterRPCAddrs: make(map[string]string),
+		DBAddrs:        "root:yxkj@tcp(192.168.19.37:3307)/lexiangccb?charset=utf8",
 	}
 }
 

@@ -34,6 +34,10 @@ func main() {
 	if err := InitKafka(Conf.KafkaAddrs); err != nil {
 		panic(err)
 	}
+	//TODO err
+	initDB()
+
 	// block until a signal is received.
 	InitSignal()
+
 }
