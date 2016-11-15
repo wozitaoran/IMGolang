@@ -81,12 +81,10 @@ func getSingleOfflineMsg(uid int64) (msgs []proto.RecvMessage, err error) {
 
 //chang status online
 //func userConnectMysql() {
-
 //}
 
 //change status offline
 //func userDisconnectMysql() {
-
 //}
 
 func checkErr(err error) {

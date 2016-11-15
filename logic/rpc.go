@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	inet "goim/libs/net"
 	"goim/libs/proto"
 	"net"
@@ -81,14 +82,13 @@ func checkOfflineMsg(uid int64, key string, serverId int32) {
 	keyArr := []string{key}
 
 	for _, recMsg := range msgs {
-		log.Info(recMsg.Msg)
+		recvBodyBytes, _ := json.Marshal(recMsg)
+		log.Info(recMsg)
+		log.Info(recvBodyBytes)
+		log.Info(keyArr)
+		log.Info(serverId)
+		mpushKafka(serverId, keyArr, recvBodyBytes)
 	}
-
-	_ = keyArr
-	//	for _, msg := range msgs {
-	//		mpushKafka(serverId, keyArr, msg)
-	//	}
-
 }
 
 // Disconnect notice router offline

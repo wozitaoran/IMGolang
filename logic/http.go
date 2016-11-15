@@ -110,21 +110,11 @@ func Push(w http.ResponseWriter, r *http.Request) {
 	}
 	subKeys = genSubKey(userId)
 	log.Debug("subKeys = genSubKey(userId)=======%v", subKeys)
-	//TODO xurui subKeys   如果离线消息要发是不是可以直接push到默认的serverid
-	//TODO 为什么一个user的serverid 有多个？comet能连接多个？  one user can connet many time
-	//打印map的长度  len(subKeys)
-	size := len(subKeys)
-	if size == 0 { //用户不在线,将消息存入离线消息系统  暂定mysql
-		log.Debug("offline msg")
-		serverId = 1 //test
-		//TODO 存储到mysql
 
-		//offlinekeys := []string{fmt.Sprintf("%d", userId) + "_1"}
-		//log.Debug("offlinekeys=======%v", offlinekeys)
-		//if err = mpushKafka(serverId, offlinekeys, bodyBytes); err != nil {
-		//	res["ret"] = InternalErr
-		//	return
-		//}
+	size := len(subKeys)
+	if size == 0 {
+		log.Debug("offline msg")
+
 	} else {
 		log.Debug("online msg")
 		for serverId, keys = range subKeys {
@@ -255,7 +245,7 @@ func SendMsg(w http.ResponseWriter, r *http.Request) {
 		log.Debug("subKeys = genSubKey(userId)=======%v", subKeys)
 
 		size := len(subKeys)
-		if size == 0 { //用户不在线,将消息存入离线消息系统  暂定mysql
+		if size == 0 {
 			log.Debug("offline msg")
 			//TODO 是否加go
 			addSingleOfflinemsg(fromId, targetId, string(msgContent), msg_type)
