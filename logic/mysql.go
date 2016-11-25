@@ -140,6 +140,21 @@ func addSingleOffline_groupmsg(sendId int64, recvId int64, groupid int64, msgCon
 	stmt.Close()
 }
 
+//根据id读取token
+func get_IDtoToken(user_id string) (salt string) {
+	rows, err := db.Query("select salt from token where user_id = ?;", user_id)
+	if err != nil {
+		err.Error()
+	}
+
+	for rows.Next() {
+		err = rows.Scan(&salt)
+	}
+	rows.Close()
+
+	return
+}
+
 //chang status online
 //func userConnectMysql() {
 //}

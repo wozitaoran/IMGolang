@@ -196,6 +196,19 @@ func SendMsg(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method Not Allowed", 405)
 		return
 	}
+
+	// token认证   TODO 。。。
+	//log.Error("token-------------(%s)", r.Header.Get("X-Auth-Token"))
+	token_Rerr := checktoken(r.Header.Get("X-Auth-Token"))
+	if token_Rerr != nil {
+		log.Error("-------X-Auth-Token----------")
+		log.Error(token_Rerr)
+
+		var body_tmp string
+		retPWrite(w, r, map[string]interface{}{"ret": "401"}, &body_tmp, time.Now())
+		return
+	}
+
 	var (
 		body        string
 		bodyBytes   []byte
@@ -212,6 +225,7 @@ func SendMsg(w http.ResponseWriter, r *http.Request) {
 		keys        []string
 	)
 	defer retPWrite(w, r, res, &body, time.Now())
+
 	if bodyBytes, err = ioutil.ReadAll(r.Body); err != nil {
 		log.Error("ioutil.ReadAll() failed (%s)", err)
 		res["ret"] = InternalErr

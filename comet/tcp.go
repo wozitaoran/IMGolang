@@ -10,6 +10,8 @@ import (
 	"net"
 	"time"
 
+	"encoding/json"
+
 	log "github.com/thinkboy/log4go"
 )
 
@@ -297,8 +299,17 @@ func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, p *proto.Proto
 		return
 	}
 	if key, rid, heartbeat, err = server.operator.Connect(p); err != nil {
+		log.Debug("token authentication failed ...")
+		//认证失败
+		p.Body = json.RawMessage("401")
+		p.Operation = define.OP_AUTH_REPLY
+		if err = p.WriteTCP(wr); err != nil {
+			return
+		}
+		err = wr.Flush()
 		return
 	}
+
 	p.Body = nil
 	p.Operation = define.OP_AUTH_REPLY
 	if err = p.WriteTCP(wr); err != nil {

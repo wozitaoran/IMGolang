@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	inet "goim/libs/net"
 	"goim/libs/proto"
 	"net"
@@ -63,9 +64,22 @@ func (r *RPC) Connect(arg *proto.ConnArg, reply *proto.ConnReply) (err error) {
 		uid int64
 		seq int32
 	)
-	uid, reply.RoomId = r.auther.Auth(arg.Token)
+
+	// è®¤è¯ç»“æœåˆ¤æ–­ ï¼Ÿ  //TODO
+	uid, reply.RoomId, err = r.auther.Auth(arg.Token)
+	if err != nil {
+		if seq, err = connect(uid, arg.Server, reply.RoomId); err == nil {
+			reply.Key = encode(uid, seq)
+
+			//err èµ‹å€¼
+			err = errors.New("token authentication failed ...")
+			return
+		}
+	}
+
 	if seq, err = connect(uid, arg.Server, reply.RoomId); err == nil {
 		reply.Key = encode(uid, seq)
+
 		go checkOfflineMsg(uid, reply.Key, arg.Server) //add by xurui
 		go checkOffline_GMsg(uid, reply.Key, arg.Server)
 	}
@@ -88,7 +102,7 @@ func checkOfflineMsg(uid int64, key string, serverId int32) {
 	}
 }
 
-//À­È¡ÀëÏßÈºÏûÏ¢  ²¢ÍÆËÍ
+//æ‹‰å–ç¦»çº¿ç¾¤æ¶ˆæ¯  å¹¶æ¨é€
 func checkOffline_GMsg(uid int64, key string, serverId int32) {
 	//get from db
 	log.Debug("func checkOfflineMsg")
