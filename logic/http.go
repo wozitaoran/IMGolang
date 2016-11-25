@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	inet "goim/libs/net"
 	"goim/libs/proto"
 	"io/ioutil"
@@ -262,24 +263,49 @@ func SendMsg(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	} else if target_type == "group" {
+		log.Debug("------------group msg-------------")
 		//TODO 发送到群
 		//根据groupid查询userIds
+		userIds, err = getGroup_membertoUser_id(targetId)
+		for _, uid := range userIds {
+			fmt.Println(uid)
+			//判断uid是否在线，在线即推送，不在线则存入数据库。
+			subKeys = genSubKey(uid)
 
-		//推多人
-		subKeys = genSubKeys(userIds)
-
-		log.Debug("subKeys = genSubKey(userId)=======%v", subKeys)
-		for serverId, keys = range subKeys {
-			log.Debug("serverId=======%d", serverId)
-			log.Debug("keys=======%v", keys)
-			if err = mpushKafka(serverId, keys, bodyBytes); err != nil {
-				res["ret"] = InternalErr
-				return
+			size := len(subKeys)
+			if size == 0 {
+				//写入数据库 判断不写入 发自身的消息
+				log.Debug("------------uid=%d groupid=%d-------------", uid, targetId)
+				if uid != fromId {
+					addSingleOffline_groupmsg(fromId, uid, targetId, string(msgContent), msg_type)
+				}
+			} else {
+				log.Debug("------------uid=%d groupid=%d-------------", uid, targetId)
+				for serverId, keys = range subKeys {
+					if err = mpushKafka(serverId, keys, recvBodyBytes); err != nil {
+						res["ret"] = InternalErr
+						return
+					}
+				}
 			}
 		}
 
+		//推多人
+		// subKeys = genSubKeys(userIds)
+
+		// log.Debug("subKeys = genSubKey(userId)=======%v", subKeys)
+		// for serverId, keys = range subKeys {
+		// 	log.Debug("serverId=======%d", serverId)
+		// 	log.Debug("keys=======%v", keys)
+		// 	if err = mpushKafka(serverId, keys, bodyBytes); err != nil {
+		// 		res["ret"] = InternalErr
+		// 		return
+		// 	}
+		// }
+
 	} else {
 		//TODO 异常处理
+		//target_type 都不符合即为 非法客户端，可主动断开其连接。
 	}
 
 	res["ret"] = OK

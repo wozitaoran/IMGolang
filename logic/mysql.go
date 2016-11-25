@@ -79,6 +79,67 @@ func getSingleOfflineMsg(uid int64) (msgs []proto.RecvMessage, err error) {
 	return
 }
 
+//拉取离线群消息
+func getSingleOffline_GMsg(uid int64) (gmsgs []proto.Recv_GMessage, err error) {
+	db, err := sql.Open("mysql", "root:yxkj@tcp(192.168.19.37:3307)/lexiangccb?charset=utf8")
+	if err != nil {
+		err.Error()
+	}
+
+	rows, err := db.Query("SELECT SendId,groupid,MsgContent,Msg_type,Insert_time FROM im_g_offline_msg WHERE recvId=?", uid)
+
+	for rows.Next() {
+		var SendId int64
+		var groupid int64
+
+		var MsgContent string
+		var Msg_type int64
+		var Insert_time string
+		err = rows.Scan(&SendId, &groupid, &MsgContent, &Msg_type, &Insert_time)
+		msg := proto.Recv_GMessage{"group", Msg_type, groupid, MsgContent, SendId, Insert_time}
+		gmsgs = append(gmsgs, msg)
+	}
+
+	rows.Close()
+
+	//删除数据
+	// stmt, err := db.Prepare("delete from im_g_offline_msg where recvId=?")
+
+	// res, err := stmt.Exec(uid)
+
+	// _, err = res.RowsAffected()
+	// stmt.Close()
+
+	return
+}
+
+//根据群id查找群成员id
+func getGroup_membertoUser_id(gid int64) (uids []int64, err error) {
+	rows, err := db.Query("select user_id from group_member where group_id = ?;", gid)
+
+	var uid int64
+	for rows.Next() {
+		err = rows.Scan(&uid)
+		uids = append(uids, uid)
+	}
+	rows.Close()
+	return uids, nil
+}
+
+//插入群离线消息
+func addSingleOffline_groupmsg(sendId int64, recvId int64, groupid int64, msgContent string, msg_type int64) {
+	stmt, err := db.Prepare("insert into im_g_offline_msg (sendId,recvId,groupid,recvTime,msgContent,msg_type,insert_time)values(?,?,?,'',?,?,now());")
+	if err != nil {
+		err.Error()
+	}
+
+	_, err = stmt.Exec(sendId, recvId, groupid, msgContent, msg_type)
+	if err != nil {
+		err.Error()
+	}
+	stmt.Close()
+}
+
 //chang status online
 //func userConnectMysql() {
 //}

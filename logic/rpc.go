@@ -67,6 +67,7 @@ func (r *RPC) Connect(arg *proto.ConnArg, reply *proto.ConnReply) (err error) {
 	if seq, err = connect(uid, arg.Server, reply.RoomId); err == nil {
 		reply.Key = encode(uid, seq)
 		go checkOfflineMsg(uid, reply.Key, arg.Server) //add by xurui
+		go checkOffline_GMsg(uid, reply.Key, arg.Server)
 	}
 	return
 }
@@ -83,10 +84,23 @@ func checkOfflineMsg(uid int64, key string, serverId int32) {
 
 	for _, recMsg := range msgs {
 		recvBodyBytes, _ := json.Marshal(recMsg)
-		log.Info(recMsg)
-		log.Info(recvBodyBytes)
-		log.Info(keyArr)
-		log.Info(serverId)
+		mpushKafka(serverId, keyArr, recvBodyBytes)
+	}
+}
+
+//拉取离线群消息  并推送
+func checkOffline_GMsg(uid int64, key string, serverId int32) {
+	//get from db
+	log.Debug("func checkOfflineMsg")
+	msgs, err := getSingleOffline_GMsg(uid)
+	if err != nil {
+		log.Error("checkOffline_GMsg error:%v", err)
+		return
+	}
+	keyArr := []string{key}
+
+	for _, recMsg := range msgs {
+		recvBodyBytes, _ := json.Marshal(recMsg)
 		mpushKafka(serverId, keyArr, recvBodyBytes)
 	}
 }

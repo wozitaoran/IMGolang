@@ -21,3 +21,13 @@ type SendMessage struct {
 	Msg         json.RawMessage `json:"msg"`
 	From        int64           `json:"from"`
 }
+
+//群消息结构
+type Recv_GMessage struct {
+	Target_type string `json:"target_type"`
+	Msg_type    int64  `json:"msg_type"`
+	Groupid     int64  `json:"groupid"`
+	Msg         string `json:"msg"`
+	From        int64  `json:"from"`
+	Send_time   string `json:"send_time"`
+}
