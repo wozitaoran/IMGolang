@@ -16,9 +16,9 @@ IMGolang is a im server writen by golang.base on goim.
  * Scalable architecture (Unlimited dynamic job and logic modules)
  * Asynchronous push notification based on Kafka
  
- *mysql 
- *group chat 
- *auth token
+ * mysql 
+ * group chat 
+ * auth token
 
 ## Architecture
 ![arch](https://github.com/Terry-Mao/goim/blob/master/doc/arch.png)
