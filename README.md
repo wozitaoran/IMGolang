@@ -1,6 +1,8 @@
-goim
+IMGolang
 ==============
-goim is a im server writen by golang.
+IMGolang is a im server writen by golang.base on goim.
+
+
 
 ## Features
  * Light weight
@@ -13,6 +15,10 @@ goim is a im server writen by golang.
  * Supports multiple protocols (WebSocket，TCP，HTTP）
  * Scalable architecture (Unlimited dynamic job and logic modules)
  * Asynchronous push notification based on Kafka
+ 
+ *mysql 
+ *group chat 
+ *auth token
 
 ## Architecture
 ![arch](https://github.com/Terry-Mao/goim/blob/master/doc/arch.png)
